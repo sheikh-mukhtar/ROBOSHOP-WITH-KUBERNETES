@@ -1,0 +1,91 @@
+# 🌟 ConfigMap: Environment variables for Payment service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment
+  namespace: roboshop
+  labels:
+    component: payment
+    project: roboshop
+    tier: backend
+data:
+  CART_HOST: "cart"       # 🛒 Cart service host
+  CART_PORT: "8080"       # 🛒 Cart service port
+  USER_HOST: "user"       # 👤 User service host
+  USER_PORT: "8080"       # 👤 User service port
+  AMQP_HOST: "rabbitmq"   # 🐇 RabbitMQ host
+
+---
+
+# 🔐 Secret: RabbitMQ credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: payment
+  namespace: roboshop
+  labels:
+    component: payment
+    project: roboshop
+    tier: app
+type: Opaque
+data:
+  AMQP_USER: "cm9ib3Nob3A="   # RabbitMQ user
+  AMQP_PASS: "cm9ib3Nob3AxMjM="  # RabbitMQ password
+
+---
+
+# 🚀 Deployment: Payment microservice
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  namespace: roboshop
+  labels:
+    component: payment
+    project: roboshop
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: payment
+      project: roboshop
+      tier: backend
+  template:
+    metadata:
+      labels:
+        component: payment
+        project: roboshop
+        tier: backend
+    spec:
+      containers:
+        - name: payment
+          image: mukhtarsheikh/payment:v1
+          # 🌱 Inject environment variables from ConfigMap & Secret
+          envFrom:
+            - configMapRef:
+                name: payment
+            - secretRef:
+                name: payment
+
+---
+
+# 🌐 Service: Expose Payment microservice
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  namespace: roboshop
+  labels:
+    component: payment
+    project: roboshop
+    tier: backend
+spec:
+  selector:
+    component: payment
+    project: roboshop
+    tier: backend
+  ports:
+    - protocol: TCP
+      port: 8080       # Service port
+      targetPort: 8080 # Container port
